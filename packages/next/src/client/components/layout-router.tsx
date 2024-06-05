@@ -368,7 +368,6 @@ function InnerLayoutRouter({
       prefetchLayerAssets: null,
       prefetchHead: null,
       parallelRoutes: new Map(),
-      lazyDataResolved: false,
       loading: null,
     }
 
@@ -427,7 +426,6 @@ function InnerLayoutRouter({
         includeNextUrl ? context.nextUrl : null,
         buildId
       )
-      childNode.lazyDataResolved = false
     }
 
     /**
@@ -436,23 +434,17 @@ function InnerLayoutRouter({
     // When the data has not resolved yet `use` will suspend here.
     const serverResponse = use(lazyData)
 
-    if (!childNode.lazyDataResolved) {
-      // setTimeout is used to start a new transition during render, this is an intentional hack around React.
-      setTimeout(() => {
-        startTransition(() => {
-          changeByServerResponse({
-            previousTree: fullTree,
-            serverResponse,
-          })
+    // setTimeout is used to start a new transition during render, this is an intentional hack around React.
+    setTimeout(() => {
+      startTransition(() => {
+        changeByServerResponse({
+          previousTree: fullTree,
+          serverResponse,
         })
       })
+    })
 
-      // It's important that we mark this as resolved, in case this branch is replayed, we don't want to continously re-apply
-      // the patch to the tree.
-      childNode.lazyDataResolved = true
-    }
     // Suspend infinitely as `changeByServerResponse` will cause a different part of the tree to be rendered.
-    // A falsey `resolvedRsc` indicates missing data -- we should not commit that branch, and we need to wait for the data to arrive.
     use(unresolvedThenable) as never
   }
 
